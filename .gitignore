@@ -124,6 +124,8 @@ dist
 
 # local files
 *.local
+cvs
+out
 
 # yarn v2
 .yarn/cache

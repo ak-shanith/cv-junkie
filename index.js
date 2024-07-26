@@ -3,11 +3,17 @@ const path = require("path");
 const pdfParse = require("pdf-parse");
 const xlsx = require("xlsx");
 const OpenAI = require("openai");
+require("dotenv").config();
 
 // OpenAI API configuration
-const openaiApiKey = "";
-const projectId = "";
-const orgId = "";
+const openaiApiKey = process.env.OPENAI_API_KEY;
+const projectId = process.env.OPENAI_PROJECT_ID;
+const orgId = process.env.OPENAI_ORG_ID;
+
+// Paths and file names
+const folderPath = "./cvs"; // Change to your folder path
+const outputFilePath = "./out/result.xlsx";
+const jobDescriptionPath = "./jd.txt"; // Path to your job description file
 
 const openai = new OpenAI({
   apiKey: openaiApiKey,
@@ -15,13 +21,13 @@ const openai = new OpenAI({
   project: projectId,
 });
 
-// Function to read PDFs and extract text
+// Function to read PDFs and extract candidates' information
 async function readPDFs(folderPath, jobDescription) {
   const files = fs.readdirSync(folderPath);
   const pdfFiles = files.filter(
     (file) => path.extname(file).toLowerCase() === ".pdf"
   );
-  const extractedData = [];
+  const candidates = [];
 
   for (const file of pdfFiles) {
     const filePath = path.join(folderPath, file);
@@ -30,104 +36,83 @@ async function readPDFs(folderPath, jobDescription) {
     const text = data.text;
 
     // Send text to OpenAI API for processing
-    const extractedInfo = await extractInfoWithGPT(text, jobDescription);
-    extractedData.push(extractedInfo);
+    const candidate = await extractInfoWithGPT(text, jobDescription);
+    candidates.push(candidate);
   }
 
-  return extractedData;
+  // Convert 'Score' to number and sort the array
+  candidates.forEach((item) => {
+    item.Score = Number(item.Score);
+  });
+  candidates.sort((a, b) => b.Score - a.Score);
+
+  return candidates;
 }
 
 // Function to extract information using GPT
-async function extractInfoWithGPT(text, jobDescription) {
+async function extractInfoWithGPT(candidateCV, jobDescription) {
   const prompt = `
-Extract the following information from the given CV text based on the job description:
+    Here is a job description and a CV for analysis. Please follow the instructions to extract and rate the candidate's suitability.
 
-Job Description:
-${jobDescription}
+    Extract the following information from the given CV text based on the job description:
 
-CV Text:
-${text}
+    Job Description:
+    ${jobDescription}
 
-Extracted Information:
-- Name:
-- Email:
-- Phone:
-- Skills:
-- Experience:
-- Education:
+    CV Text:
+    ${candidateCV}
 
-Rate this candidate on a scale of 1 to 5 based on how suitable the candidate for the job.
+    Extracted Information:
+    - Name:
+    - Email:
+    - Phone:
+    - Skills:
+    - Experience:
+    - Education:
 
-Output should be in JSON format.
-Output JSON should only contain following Keys: [Name, Email, Phone, Skills, Experience, Education, Candidate Rating, Reason for rating]
-And the value for above keys should be in string format.
-Clean and trip output as needed.
-`;
+    Rate this candidate on a scale of 1 to 5 based on how suitable the candidate for the job.
+
+    Also give a overall suitability score based on the job description.
+    Calculate the suitability score for the candidate based on their alignment with the job requirements.
+      
+    Consider the following criteria:
+    - Skills Match (40%)
+    - Experience (50%)
+    - Education (10%)
+      
+    Scoring:
+    - Assign points for each criterion (out of 100) and calculate the total suitability score.
+
+    Output should be in JSON format and should only contain the following keys: 
+    [Name, Email, Phone, Skills, Experience, Education, Rating, Reason, Score].
+
+    The values for the keys should be in string format.
+    Clean and trim the output as needed.
+    `;
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert in job matching and CV analysis. Your task is to extract and analyze information from CVs based on given job descriptions.",
+        },
         {
           role: "user",
           content: prompt,
         },
       ],
-      max_tokens: 3000,
+      max_tokens: 4096,
       temperature: 0.7,
     });
-    console.log(response.choices[0].message.content);
     const extractedText = response.choices[0].message.content;
     const extractedInfo = parseExtractedText(extractedText);
+    console.log(extractedInfo);
     return extractedInfo;
   } catch (error) {
     console.error("Error extracting information:", error);
     return {};
-  }
-}
-
-// Analyze CVs with the job description
-async function analyzeCVs(jobDescription, cvList) {
-  const prompt = `
-  Analyze the following CVs in the context of the job description.
-  
-  Job Description:
-  ${jobDescription}
-  
-  CVs:
-  ${JSON.stringify(cvList, null, 2)}
-
-  Give a suitability score for each CV based on the job description.
-  Calculate the suitability score for each candidate based on their alignment with the job requirements for Senior DevOps Engineer role.
-  
-  Consider the following criteria:
-  Skills Match (40%)
-  Experience (50%)
-  Education (10%)
-  
-  Scoring
-  Assign points for each criterion (out of 100) and calculate the total suitability score.
-
-  Output should be in JSON format. Sort the candidates based on their suitability score.
-`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert in job matching and CV analysis.",
-        },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 3000, // Adjust based on the expected length of response
-      temperature: 0.7,
-    });
-
-    return response.choices[0].message.content;
-  } catch (error) {
-    console.error("Error analyzing CVs:", error);
-    throw error;
   }
 }
 
@@ -147,24 +132,12 @@ function writeToExcel(data, outputFilePath) {
   xlsx.writeFile(workbook, outputFilePath);
 }
 
-// Function to read the job description from a text file
-function readJobDescription(filePath) {
-  return fs.readFileSync(filePath, "utf-8");
-}
-
 async function main() {
-  const folderPath = "./cvs"; // Change to your folder path
-  const outputFilePath = "./result.xlsx";
-  const jobDescriptionPath = "./jd.txt"; // Path to your job description file
+  const jd = fs.readFileSync(jobDescriptionPath, "utf-8");
+  const candidates = await readPDFs(folderPath, jd);
+  writeToExcel(candidates, outputFilePath);
 
-  const jobDescription = readJobDescription(jobDescriptionPath);
-  const extractedData = await readPDFs(folderPath, jobDescription);
-
-  writeToExcel(extractedData, outputFilePath);
-  console.log(`Extracted data has been written to ${outputFilePath}`);
-
-  const analysisResult = await analyzeCVs(jobDescription, extractedData);
-  console.log("Analysis Result:", analysisResult);
+  console.log(`Extracted data has been saved to ${outputFilePath}`);
 }
 
 main().catch(console.error);
