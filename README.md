@@ -1,7 +1,7 @@
-# CV-JUNKIE 🐙 - Analyze CVs against Job Descriptions and get a detailed report using GPTs
+# CV-JUNKIE 🐙 - Analyze CVs against Job Descriptions and generate detailed reports with GenAI
 
 ## Table of Contents
-- [CV-JUNKIE 🐙 - Analyze CVs against Job Descriptions and get a detailed report using GPTs](#cv-junkie----analyze-cvs-against-job-descriptions-and-get-a-detailed-report-using-gpts)
+- [CV-JUNKIE 🐙 - Analyze CVs against Job Descriptions and generate detailed reports with GenAI](#cv-junkie----analyze-cvs-against-job-descriptions-and-generate-detailed-reports-with-genai)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [How to use CV-JUNKIE](#how-to-use-cv-junkie)
