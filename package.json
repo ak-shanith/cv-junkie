@@ -1,0 +1,20 @@
+{
+  "name": "cv-junkie",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "ak-shanith",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "csv-writer": "^1.6.0",
+    "fs": "^0.0.1-security",
+    "openai": "^4.53.1",
+    "path": "^0.12.7",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5"
+  }
+}
