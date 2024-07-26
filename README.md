@@ -11,7 +11,7 @@
 
 ## Introduction
 
-CV-JUNKIE is a tool that helps you analyze CVs against Job Descriptions and get a detailed report. Developed using OpenAI's GPT-4o, CV-JUNKIE is a powerful tool that can help you analyze CVs and Job Descriptions in a matter of seconds.
+CV-JUNKIE is a tool that helps you analyze CVs against Job Descriptions and get detailed reports. CV-JUNKIE is a simple tool that can help you analyze CVs and Job Descriptions in a matter of seconds.
 
 It uses GPTs to generate a detailed report that includes the following:
 - Match Percentage
